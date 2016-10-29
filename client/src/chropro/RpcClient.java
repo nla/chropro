@@ -10,27 +10,36 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.channels.ClosedChannelException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class RpcClient implements Closeable {
     static Gson gson = new Gson();
 
     final AtomicLong idSeq = new AtomicLong(0);
     final RpcSocket socket;
-    final ConcurrentHashMap<Long, CompletableFuture<JsonElement>> futures = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<Long, CompletableFuture<JsonElement>> methodFutures = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<String, List<CompletableFuture<JsonElement>>> eventFutures = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<String, List<Consumer<JsonElement>>> eventListeners = new ConcurrentHashMap<>();
     Exception closeReason = null;
     volatile Thread connectingThread = null;
 
-    public RpcClient(int port) throws IOException {
-        socket = new RpcSocket(port);
+    public RpcClient(URI webSocketDebuggerUrl) throws IOException {
+
+        System.out.println("connecting to " + webSocketDebuggerUrl);
+        socket = new RpcSocket(webSocketDebuggerUrl);
         try {
             socket.connectBlocking();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        System.out.println("connected");
         if (closeReason != null) {
             if (closeReason instanceof IOException) {
                 throw (IOException)closeReason;
@@ -45,11 +54,10 @@ public class RpcClient implements Closeable {
             throw new IllegalStateException("closed", closeReason);
         }
         RpcRequest request = new RpcRequest(idSeq.getAndIncrement(), method, params);
-        String text = gson.toJson(request);
-        System.out.println("Send: " + text);
-        socket.send(text);
         CompletableFuture<JsonElement> future = new CompletableFuture<>();
-        futures.put(request.id, future);
+        methodFutures.put(request.id, future);
+        String text = gson.toJson(request);
+        socket.send(text);
         return future;
     }
 
@@ -57,57 +65,111 @@ public class RpcClient implements Closeable {
         return call(method, params).thenApply(result -> gson.fromJson(result, resultType));
     }
 
+    public synchronized void addEventListener(String method, Consumer<JsonElement> listener) {
+        List<Consumer<JsonElement>> list = eventListeners.get(method);
+        if (list == null) {
+            list = Collections.synchronizedList(new ArrayList<>());
+            eventListeners.put(method, list);
+        }
+        list.add(listener);
+    }
+
+    public <T> void addEventListener(String method, Consumer<T> listener, Class<T> eventType) {
+        addEventListener(method, el -> listener.accept(gson.fromJson(el, eventType)));
+    }
+
+    public synchronized <T> CompletableFuture<T> eventFuture(String method, Class<T> eventType) {
+        CompletableFuture<JsonElement> future = new CompletableFuture<>();
+        List<CompletableFuture<JsonElement>> list = eventFutures.get(method);
+        if (list == null) {
+            list = Collections.synchronizedList(new ArrayList<>());
+            eventFutures.put(method, list);
+        }
+        list.add(future);
+        return future.thenApply(el -> gson.fromJson(el, eventType));
+    }
+
     @Override
     public void close() throws IOException {
         close(new ClosedChannelException());
     }
 
-    private synchronized void close(Exception reason) {
+    synchronized void dispatchEvent(String method, JsonElement event) {
+        List<CompletableFuture<JsonElement>> futures = eventFutures.remove(method);
+        if (futures != null) {
+            for (CompletableFuture<JsonElement> future : futures) {
+                future.complete(event);
+            }
+        }
+
+        for (Consumer<JsonElement> listener: eventListeners.getOrDefault(method, Collections.emptyList())) {
+            listener.accept(event);
+        }
+    }
+
+    synchronized void dispatchResponse(RpcResponse response) {
+        CompletableFuture future = methodFutures.remove(response.id);
+        if (future != null) {
+            if (response.error != null) {
+                future.completeExceptionally(new RpcException(response.error.code, response.error.message));
+            }
+            future.complete(response.result);
+        }
+    }
+
+    private void close(Exception reason) {
         if (closeReason == null) {
             closeReason = reason;
             socket.close();
-            for (CompletableFuture<JsonElement> future : futures.values()) {
-                future.completeExceptionally(reason);
+        }
+    }
+
+    private synchronized void cleanup() {
+        for (CompletableFuture<JsonElement> future : methodFutures.values()) {
+            future.completeExceptionally(closeReason);
+        }
+        methodFutures.clear();
+
+        for (List<CompletableFuture<JsonElement>> futures : eventFutures.values()) {
+            for (CompletableFuture<JsonElement> future : methodFutures.values()) {
+                future.completeExceptionally(closeReason);
             }
         }
+        eventFutures.clear();
     }
 
     class RpcSocket extends WebSocketClient {
 
-        public RpcSocket(int port) {
-            super(URI.create("ws://127.0.0.1:" + port + "/devtools/browser"), new Draft_17());
+        public RpcSocket(URI serverURI) {
+            super(serverURI, new Draft_17());
         }
 
-        @Override
-        public void onOpen(ServerHandshake serverHandshake) {
-
-            System.out.println("Open " + serverHandshake);
-        }
-
-        @Override
         public void onMessage(String s) {
-            System.out.println("Message: " + s);
+            System.out.println("Message: " + s.substring(0, Math.min(s.length(), 2048)));
             RpcResponse response = gson.fromJson(s, RpcResponse.class);
-            CompletableFuture future = futures.remove(response.id);
-            if (future != null) {
-                if (response.error != null) {
-                    future.completeExceptionally(new RpcException(response.error.code, response.error.message));
-                }
-                future.complete(response.result);
-            }
 
+            if (response.method == null) {
+                dispatchResponse(response);
+            } else {
+                dispatchEvent(response.method, response.params);
+            }
         }
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
             if (closeReason != null) {
-                RpcClient.this.close(new RpcException(code, reason));
+                closeReason = new RpcException(code, reason);
+                cleanup();
             }
+        }
+        public void onError(Exception e) {
+            e.printStackTrace();
+            RpcClient.this.close(e);
         }
 
         @Override
-        public void onError(Exception e) {
-            RpcClient.this.close(e);
+        public void onOpen(ServerHandshake serverHandshake) {
+
         }
     }
 }

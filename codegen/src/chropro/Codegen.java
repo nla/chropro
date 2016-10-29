@@ -3,13 +3,17 @@ package chropro;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.squareup.javapoet.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Generated;
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -132,10 +136,10 @@ public class Codegen {
             }
 
             entrypoint.addMethod(MethodSpec.constructorBuilder()
-                    .addParameter(TypeName.INT, "port")
+                    .addParameter(URI.class, "webSocketDebuggerUrl")
                     .addModifiers(PUBLIC)
                     .addException(IOException.class)
-                    .addStatement("this(new $T(port))", CLIENT_CLASS)
+                    .addStatement("this(new $T(webSocketDebuggerUrl))", CLIENT_CLASS)
                     .build());
 
             entrypoint.addMethod(constructor.build());
@@ -192,6 +196,7 @@ public class Codegen {
         public ClassName className;
         public List<Parameter> types;
         public List<Command> commands;
+        public List<Command> events;
         TypeSpec.Builder builder;
 
         void init(AnnotationSpec generatedAnnotation) {
@@ -215,6 +220,32 @@ public class Codegen {
             for (Command command : commands) {
                 command.build(builder, protocol, this);
             }
+
+            if (events != null) {
+                for (Command event : events) {
+                    ClassName struct = buildStruct(builder, cap(event.name), event.description, event.parameters, protocol, this);
+                    {
+                        MethodSpec.Builder methodSpec = MethodSpec.methodBuilder("on" + cap(event.name))
+                                .addModifiers(PUBLIC)
+                                .addParameter(ParameterizedTypeName.get(ClassName.get(Consumer.class), struct), "listener")
+                                .addStatement("rpcClient.addEventListener($S, listener, $T.class)", domain + "." + event.name, struct);
+                        if (event.description != null) {
+                            methodSpec.addJavadoc(event.description.replace("$", "$$") + "\n");
+                        }
+                        builder.addMethod(methodSpec.build());
+                    }
+                    {
+                        MethodSpec.Builder methodSpec = MethodSpec.methodBuilder("on" + cap(event.name))
+                                .addModifiers(PUBLIC)
+                                .returns(ParameterizedTypeName.get(ClassName.get(CompletableFuture.class), struct))
+                                .addStatement("return rpcClient.eventFuture($S, $T.class)", domain + "." + event.name, struct);
+                        if (event.description != null) {
+                            methodSpec.addJavadoc(event.description.replace("$", "$$") + "\n");
+                        }
+                        builder.addMethod(methodSpec.build());
+                    }
+                }
+            }
         }
 
         public Parameter ref(String id) {
@@ -235,8 +266,10 @@ public class Codegen {
         public void build(TypeSpec.Builder b, Protocol protocol, Domain domain) {
             MethodSpec.Builder methodSpec = MethodSpec.methodBuilder(name)
                     .addModifiers(PUBLIC);
+
+            StringBuilder javadoc = new StringBuilder();
             if (description != null) {
-                methodSpec.addJavadoc(description.replace("$", "$$") + "\n");
+                javadoc.append(description.replace("$", "$$") + "\n");
             }
 
             ClassName resultType;
@@ -252,13 +285,22 @@ public class Codegen {
             for (Parameter param : parameters) {
                 TypeName type = param.typeName(protocol, domain);
                 if (type != null) {
-                    param.spec = ParameterSpec.builder(type, param.name).build();
+                    param.spec = ParameterSpec.builder(type, param.name)
+                            .addAnnotation(param.optional ? Nullable.class : NotNull.class)
+                            .build();
                 } else {
                     param.spec = ParameterSpec.builder(Object.class, param.name).build();
                 }
                 methodSpec.addParameter(param.spec);
+
+                if (param.description != null) {
+                    javadoc.append("@param ").append(param.name).append(" ")
+                            .append(param.description.replace("$", "$$"))
+                            .append("\n");
+                }
             }
 
+            methodSpec.addJavadoc(javadoc.toString());
             methodSpec.addStatement("$T<String,Object> params = new $T<>()", Map.class, HashMap.class);
             for (Parameter param : parameters) {
                 methodSpec.addStatement("params.put($S, $N)", param.name, param.spec);
@@ -278,6 +320,7 @@ public class Codegen {
         List<Parameter> properties;
         private ClassName className;
         private ParameterSpec spec;
+        public boolean optional;
 
         public TypeName typeName(Protocol protocol, Domain domain) {
             if ($ref != null) {
@@ -318,8 +361,7 @@ public class Codegen {
             }
         }
 
-        private String cap(String name) {
-            return name.substring(0, 1).toUpperCase() + name.substring(1);
-        }
+    }    private static String cap(String name) {
+        return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 }
