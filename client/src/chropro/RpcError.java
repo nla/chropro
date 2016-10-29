@@ -1,6 +1,6 @@
 package chropro;
 
-class RpcError {
+public class RpcError {
     long code;
     String message;
 }

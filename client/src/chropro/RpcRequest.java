@@ -2,7 +2,7 @@ package chropro;
 
 import java.util.Map;
 
-class RpcRequest {
+public class RpcRequest {
     final long id;
     final String method;
     final Map<String, Object> params;
