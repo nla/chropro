@@ -22,7 +22,7 @@ public class Renderer implements AutoCloseable {
 
     }
 
-    public byte[] render(String url, int w, int h, int timeout) throws ExecutionException, InterruptedException, IOException, TimeoutException {
+    public byte[] render(String url, Integer vpw, int w, int h, int timeout) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         String contextId = chrome.target.createBrowserContext().get(timeout, MILLISECONDS).browserContextId;
         String targetId = null;
         try {
@@ -45,7 +45,7 @@ public class Renderer implements AutoCloseable {
                 tab.runtime.evaluate("document.getElementsByTagName('body')[0].style.overflow='hidden'", null, null, null, null, null, null, null, null).get(timeout, MILLISECONDS);
 
                 // wait a little for any onload javascript to fire
-                Thread.sleep(100);
+                Thread.sleep(sleep);
 
                 String data = tab.page.captureScreenshot().get(timeout, MILLISECONDS).data;
                 return Base64.getDecoder().decode(data);

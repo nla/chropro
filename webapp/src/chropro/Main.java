@@ -33,6 +33,7 @@ public class Main {
             Integer vph = or(request.queryMap("vph").integerValue(), 800);
             String format = or(request.queryParams("format"), "jpeg");
             Integer timeout = or(request.queryMap("timeout").integerValue(), 10000);
+            Integer sleep = or(request.queryMap("sleep").integerValue(), 100);
 
             if (url == null) {
                 response.status(400);
@@ -42,7 +43,7 @@ public class Main {
 
             response.type("image/" + format);
             try {
-                byte[] data = renderer.render(url, vpw, vph, timeout);
+                byte[] data = renderer.render(url, vpw, vph, timeout, sleep);
                 BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
                 if (w == null || h == null) {
                     image = Scalr.resize(image, size);
