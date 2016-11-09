@@ -7,6 +7,7 @@
     <modules>
         <module>codegen</module>
         <module>client</module>
+        <module>webapp</module>
     </modules>
     <groupId>org.meshy.chropro</groupId>
     <artifactId>chropro-parent</artifactId>
