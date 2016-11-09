@@ -29,7 +29,7 @@ public class Codegen {
     public static void main(String args[]) throws IOException {
         Protocol protocol = loadProtocol("https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=text");
         protocol.merge(loadProtocol("https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=text"));
-        
+
         File outdir = args.length > 0 ? new File(args[0]) : null;
         protocol.gencode(outdir);
     }

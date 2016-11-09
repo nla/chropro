@@ -14,6 +14,11 @@ import java.util.concurrent.TimeoutException;
 public class Main {
     public static void main(String args[]) throws ExecutionException, InterruptedException, IOException {
         Renderer renderer = new Renderer();
+
+        if (System.getenv("PORT") != null) {
+            Spark.port(Integer.parseInt(System.getenv("PORT")));
+        }
+        
         Spark.get("/image", (request, response) -> {
             String url = request.queryParams("url");
             Integer size = or(request.queryMap("size").integerValue(), 256);
