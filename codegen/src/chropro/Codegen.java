@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Generated;
 import java.io.*;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
@@ -26,15 +27,15 @@ public class Codegen {
     private static ClassName CLIENT_CLASS = ClassName.get(Codegen.class.getPackage().getName(), "RpcClient");
 
     public static void main(String args[]) throws IOException {
-        Protocol protocol = loadProtocol("browser_protocol.json");
-        protocol.merge(loadProtocol("js_protocol.json"));
-
+        Protocol protocol = loadProtocol("https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=text");
+        protocol.merge(loadProtocol("https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=text"));
+        
         File outdir = args.length > 0 ? new File(args[0]) : null;
         protocol.gencode(outdir);
     }
 
-    static Protocol loadProtocol(String name) throws IOException {
-        try (InputStream stream = Codegen.class.getResourceAsStream(name);
+    static Protocol loadProtocol(String url) throws IOException {
+        try (InputStream stream = Base64.getDecoder().wrap(new URL(url).openStream());
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, Protocol.class);
         }
