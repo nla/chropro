@@ -18,7 +18,12 @@ public class Main {
         if (System.getenv("PORT") != null) {
             Spark.port(Integer.parseInt(System.getenv("PORT")));
         }
-        
+
+        Spark.get("/",(request, response) -> "<!doctype html><form action='/image'>" +
+                        "<input name=url placeholder=url required><br>" +
+                        "<input name=size placeholder=size value=256><br>" +
+                        "<input type=submit value='Get Thumbnail'></form>");
+
         Spark.get("/image", (request, response) -> {
             String url = request.queryParams("url");
             Integer size = or(request.queryMap("size").integerValue(), 256);
