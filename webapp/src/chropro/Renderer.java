@@ -22,7 +22,7 @@ public class Renderer implements AutoCloseable {
 
     }
 
-    public byte[] render(String url, Integer vpw, int w, int h, int timeout) throws ExecutionException, InterruptedException, IOException, TimeoutException {
+    public byte[] render(String url, int w, int h, int timeout, int sleep) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         String contextId = chrome.target.createBrowserContext().get(timeout, MILLISECONDS).browserContextId;
         String targetId = null;
         try {
