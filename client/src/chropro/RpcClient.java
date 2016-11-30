@@ -30,10 +30,10 @@ public class RpcClient implements Closeable {
     Exception closeReason = null;
     volatile Thread connectingThread = null;
 
-    public RpcClient(URI webSocketDebuggerUrl) throws IOException {
+    public RpcClient(String url) throws IOException {
 
-        System.out.println("connecting to " + webSocketDebuggerUrl);
-        socket = new RpcSocket(webSocketDebuggerUrl);
+        System.out.println("connecting to " + url);
+        socket = new RpcSocket(url);
         try {
             socket.connectBlocking();
         } catch (InterruptedException e) {
@@ -140,8 +140,8 @@ public class RpcClient implements Closeable {
 
     class RpcSocket extends WebSocketClient {
 
-        public RpcSocket(URI serverURI) {
-            super(serverURI, new Draft_17());
+        public RpcSocket(String url) {
+            super(URI.create(url), new Draft_17());
         }
 
         public void onMessage(String s) {

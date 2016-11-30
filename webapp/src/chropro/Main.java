@@ -13,11 +13,22 @@ import java.util.concurrent.TimeoutException;
 
 public class Main {
     public static void main(String args[]) throws ExecutionException, InterruptedException, IOException {
-        Renderer renderer = new Renderer();
+        String chromeHost = "127.0.0.1";
+        int chromePort = 9292;
 
         if (System.getenv("PORT") != null) {
             Spark.port(Integer.parseInt(System.getenv("PORT")));
         }
+
+        if (System.getenv("CHROME_HOST") != null) {
+            chromeHost = System.getenv("CHROME_HOST");
+        }
+
+        if (System.getenv("CHROME_PORT") != null) {
+            chromePort = Integer.parseInt(System.getenv("CHROME_PORT"));
+        }
+
+        Renderer renderer = new Renderer(chromeHost, chromePort);
 
         Spark.get("/",(request, response) -> "<!doctype html><form action='/image'>" +
                         "<input name=url placeholder=url required><br>" +

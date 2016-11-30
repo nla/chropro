@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Generated;
 import java.io.*;
-import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -137,7 +136,7 @@ public class Codegen {
             }
 
             entrypoint.addMethod(MethodSpec.constructorBuilder()
-                    .addParameter(URI.class, "webSocketDebuggerUrl")
+                    .addParameter(String.class, "webSocketDebuggerUrl")
                     .addModifiers(PUBLIC)
                     .addException(IOException.class)
                     .addStatement("this(new $T(webSocketDebuggerUrl))", CLIENT_CLASS)
