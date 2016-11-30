@@ -1,0 +1,4 @@
+#!/bin/bash
+
+[ -d webapp/target/dependency ] || mvn package dependency:copy-dependencies
+java -cp 'webapp/target/dependency/*:webapp/target/webapp-0.1.0.jar' chropro.Main "$@"

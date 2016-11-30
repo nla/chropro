@@ -4,6 +4,11 @@ Java client library for the [Chrome Debugging Protocol](https://developer.chrome
 
 See [Renderer.java](webapp/src/chropro/Renderer.java) in the included thumbnailer webapp for an example of usage.
 
+```sh
+headless_shell --remote-debugging-port=9292 &
+./bin/chropro-webapp
+```
+
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at
