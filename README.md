@@ -1,6 +1,6 @@
 # chropro
 
-Java client library for the [Chrome Debugging Protoocl](https://developer.chrome.com/devtools/docs/debugger-protocol). The client is code generated from Chromium's JSON protocol description.
+Java client library for the [Chrome Debugging Protocol](https://developer.chrome.com/devtools/docs/debugger-protocol). The client is code generated from Chromium's JSON protocol description.
 
 See [Renderer.java](webapp/src/chropro/Renderer.java) in the included thumbnailer webapp for an example of usage.
 
