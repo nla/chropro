@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 @Generated(
     value = "chropro.Codegen",
-    date = "2016-12-20T03:00:26.964Z"
+    date = "2016-12-20T03:33:59.982Z"
 )
 public class ServiceWorkerDomain {
   private RpcClient rpcClient;

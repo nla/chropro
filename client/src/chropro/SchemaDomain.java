@@ -9,7 +9,7 @@ import javax.annotation.Generated;
 
 @Generated(
     value = "chropro.Codegen",
-    date = "2016-12-20T03:00:26.964Z"
+    date = "2016-12-20T03:33:59.982Z"
 )
 public class SchemaDomain {
   private RpcClient rpcClient;
