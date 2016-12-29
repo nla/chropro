@@ -11,5 +11,91 @@
     </modules>
     <groupId>org.meshy.chropro</groupId>
     <artifactId>chropro-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.0-spinn3r</version>
+
+    <properties>
+        <project.updatePolicy>never</project.updatePolicy>
+    </properties>
+
+    <profiles>
+
+        <profile>
+
+            <id>spinn3r</id>
+
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <distributionManagement>
+                <repository>
+                    <id>ssh-repository</id>
+                    <url>sftp://maven@util0063.ger.he.spinn3r.com/public</url>
+                </repository>
+            </distributionManagement>
+
+            <repositories>
+
+                <repository>
+                    <releases>
+                        <updatePolicy>${project.updatePolicy}</updatePolicy>
+                    </releases>
+                    <id>spinn3r-public</id>
+                    <url>http://public.maven.spinn3r.com/</url>
+                </repository>
+
+            </repositories>
+
+        </profile>
+
+        <profile>
+
+            <id>artifactory</id>
+
+            <distributionManagement>
+
+                <repository>
+                    <id>artifactory-releases</id>
+                    <name>libs-release-local</name>
+                    <url>https://spinn3r.artifactoryonline.com/spinn3r/libs-release-local</url>
+                </repository>
+
+                <snapshotRepository>
+                    <id>artifactory-snapshots</id>
+                    <name>libs-snapshot-local</name>
+                    <url>https://spinn3r.artifactoryonline.com/spinn3r/libs-snapshot-local</url>
+                </snapshotRepository>
+
+            </distributionManagement>
+
+            <repositories>
+
+                <repository>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <updatePolicy>${project.updatePolicy}</updatePolicy>
+                    </releases>
+                    <id>artifactory-releases</id>
+                    <name>libs-release</name>
+                    <url>https://spinn3r.artifactoryonline.com/spinn3r/libs-release</url>
+                </repository>
+
+                <repository>
+                    <releases>
+                        <updatePolicy>${project.updatePolicy}</updatePolicy>
+                    </releases>
+                    <snapshots />
+                    <id>artifactory-snapshots</id>
+                    <name>libs-snapshot</name>
+                    <url>https://spinn3r.artifactoryonline.com/spinn3r/libs-snapshot</url>
+                </repository>
+
+            </repositories>
+
+        </profile>
+
+    </profiles>
+
 </project>
