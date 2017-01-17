@@ -4,6 +4,29 @@ Java client library for the [Chrome Debugging Protocol](https://developer.chrome
 
 See [Renderer.java](webapp/src/chropro/Renderer.java) in the included thumbnailer webapp for an example of usage.
 
+## Usage with Chrome --headless mode
+
+[Download a Linux Chrome snapshot](https://download-chromium.appspot.com/?platform=Linux_x64&type=snapshots)
+
+```sh
+cd chrome-linux
+
+# Set chrome-sandbox setuid root (alternatively live dangerously with --no-sandbox)
+mv chrome_sandbox chrome-sandbox
+sudo chown root chrome-sandbox
+sudo chmod 4755 chrome-sandbox
+
+# Fire up Chrome in headless mode
+./chrome --headless --disable-gpu --remote-debugging-port=9292 &
+
+# Run the example webapp
+./bin/chropro-webapp
+```
+
+## Usage with headless_shell
+
+See [build instructions](https://chromium.googlesource.com/chromium/src/+/lkgr/headless/README.md)
+
 ```sh
 headless_shell --remote-debugging-port=9292 &
 ./bin/chropro-webapp
