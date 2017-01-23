@@ -4,6 +4,7 @@ import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.channels.ClosedChannelException;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -19,14 +20,21 @@ public class Renderer implements AutoCloseable {
     private String contextId;
     private int timeout = 10000;
 
-    public Renderer(String chromeHost, int chromePort) throws IOException, TimeoutException, InterruptedException {
+    public Renderer(String chromeHost, int chromePort) throws IOException, TimeoutException, InterruptedException, ExecutionException {
         this.chromeHost = chromeHost;
         this.chromePort = chromePort;
         init();
     }
 
-    private void init() throws IOException, TimeoutException, InterruptedException {
-        chrome = this.chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
+    private synchronized void init() throws IOException, TimeoutException, InterruptedException, ExecutionException {
+        if (chrome != null) {
+            try {
+                chrome.close();
+            } catch (ClosedChannelException ex) {
+                System.out.println("Tried closing a connection to a socket that's already gone away");
+            }
+        }
+        chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
         try {
             contextId = chrome.target.createBrowserContext().get(timeout, MILLISECONDS).browserContextId;
         } catch (ExecutionException e) {
@@ -53,7 +61,7 @@ public class Renderer implements AutoCloseable {
                 tab.page.enable().get(timeout, MILLISECONDS);
                 CompletableFuture<PageDomain.LoadEventFired> loaded = tab.page.onLoadEventFired();
 
-                System.out.println("navigating");
+                System.out.println("navigating: " + targetId);
                 tab.page.navigate(url).get(timeout, MILLISECONDS);
 
                 loaded.get(timeout, MILLISECONDS);
