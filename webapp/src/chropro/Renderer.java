@@ -13,7 +13,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class Renderer implements AutoCloseable {
 
-
     private Chropro chrome;
     private final String chromeHost;
     private final int chromePort;
@@ -41,6 +40,7 @@ public class Renderer implements AutoCloseable {
             try {
                 targetId = chrome.target.createTarget("about:blank", w, h, contextId).get(timeout, MILLISECONDS).targetId;
             } catch (WebsocketNotConnectedException ex) {
+                System.out.println("Lost connection to web service. Re-initialising chrome client.");
                 init();
                 targetId = chrome.target.createTarget("about:blank", w, h, contextId).get(timeout, MILLISECONDS).targetId;
             }
