@@ -1,5 +1,7 @@
 package chropro;
 
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Base64;
@@ -12,29 +14,36 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 public class Renderer implements AutoCloseable {
 
 
-    private final Chropro chrome;
+    private Chropro chrome;
     private final String chromeHost;
     private final int chromePort;
+    private String contextId;
+    private int timeout = 10000;
 
-    public Renderer(String chromeHost, int chromePort) throws IOException {
+    public Renderer(String chromeHost, int chromePort) throws IOException, TimeoutException, InterruptedException {
         this.chromeHost = chromeHost;
         this.chromePort = chromePort;
-        this.chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
-
+        init();
     }
 
-    public byte[] render(String url, int w, int h, int timeout, int sleep) throws ExecutionException, InterruptedException, IOException, TimeoutException {
-        String contextId;
-
+    private void init() throws IOException, TimeoutException, InterruptedException {
+        chrome = this.chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
         try {
             contextId = chrome.target.createBrowserContext().get(timeout, MILLISECONDS).browserContextId;
         } catch (ExecutionException e) {
             contextId = null; // browser contexts are only supported on headless chrome
         }
+    }
 
+    public byte[] render(String url, int w, int h, int timeout, int sleep) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         String targetId = null;
         try {
-            targetId = chrome.target.createTarget("about:blank", w, h, contextId).get(timeout, MILLISECONDS).targetId;
+            try {
+                targetId = chrome.target.createTarget("about:blank", w, h, contextId).get(timeout, MILLISECONDS).targetId;
+            } catch (WebsocketNotConnectedException ex) {
+                init();
+                targetId = chrome.target.createTarget("about:blank", w, h, contextId).get(timeout, MILLISECONDS).targetId;
+            }
 
             // Chrome is buggy and won't let us connect unless we've refreshed the json endpoint
             new URL("http://" + chromeHost + ":" + chromePort + "/json").openStream().close();

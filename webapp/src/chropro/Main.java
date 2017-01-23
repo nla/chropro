@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public class Main {
-    public static void main(String args[]) throws ExecutionException, InterruptedException, IOException {
+    public static void main(String args[]) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         String chromeHost = "127.0.0.1";
         int chromePort = 9292;
 
