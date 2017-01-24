@@ -1,5 +1,6 @@
 package chropro;
 
+import org.java_websocket.WebSocket;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import java.io.IOException;
@@ -27,14 +28,16 @@ public class Renderer implements AutoCloseable {
     }
 
     private synchronized void init() throws IOException, TimeoutException, InterruptedException, ExecutionException {
-        if (chrome != null) {
+        if (chrome != null && isConnected()) {
             try {
                 chrome.close();
             } catch (ClosedChannelException ex) {
                 System.out.println("Tried closing a connection to a socket that's already gone away");
             }
         }
-        chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
+        if (!isConnecting()) {
+            chrome = new Chropro("ws://" + this.chromeHost + ":" + this.chromePort + "/devtools/browser");
+        }
         try {
             contextId = chrome.target.createBrowserContext().get(timeout, MILLISECONDS).browserContextId;
         } catch (ExecutionException e) {
@@ -84,6 +87,25 @@ public class Renderer implements AutoCloseable {
             }
         }
     }
+
+    public boolean isConnected() {
+        if (chrome != null
+                && WebSocket.READYSTATE.OPEN == chrome.rpcClient.socket.getReadyState()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isConnecting() {
+        if (chrome != null
+                && WebSocket.READYSTATE.CONNECTING == chrome.rpcClient.socket.getReadyState()) {
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     public void close() throws Exception {
         chrome.close();

@@ -1,5 +1,7 @@
 package chropro;
 
+import org.java_websocket.WebSocket;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.String;
